@@ -1,0 +1,148 @@
+# ------------------------------------------------------------
+# OS / editor noise
+# ------------------------------------------------------------
+
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.example.json
+.idea/
+*.swp
+*.swo
+*~
+
+# ------------------------------------------------------------
+# Environment / secrets
+# ------------------------------------------------------------
+
+.env
+.env.*
+!.env.example
+
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+
+# ------------------------------------------------------------
+# Node / Svelte / TypeScript
+# ------------------------------------------------------------
+
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+.svelte-kit/
+.vercel/
+.netlify/
+
+dist/
+build/
+coverage/
+
+*.tsbuildinfo
+
+# ------------------------------------------------------------
+# Rust / Cargo
+# ------------------------------------------------------------
+
+target/
+
+# Keep Cargo.lock for applications.
+# Do NOT ignore Cargo.lock.
+
+# ------------------------------------------------------------
+# Tauri
+# ------------------------------------------------------------
+
+src-tauri/target/
+src-tauri/gen/
+src-tauri/.tauri/
+src-tauri/icons/*.icns
+src-tauri/icons/*.ico
+
+# Tauri build bundles
+src-tauri/target/release/bundle/
+src-tauri/target/debug/bundle/
+
+# ------------------------------------------------------------
+# SQLite / local databases
+# ------------------------------------------------------------
+
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+*.sqlite-shm
+*.sqlite-wal
+
+# ------------------------------------------------------------
+# Docket workspaces / user-owned data
+# ------------------------------------------------------------
+
+Docket/
+Prior Authorization/
+workspaces/
+workspace/
+workspace.db
+attachments/
+exports/
+backups/
+
+# Local demo or test workspaces
+demo-workspace/
+test-workspace/
+tmp-workspace/
+fixtures/workspaces/local/
+
+# ------------------------------------------------------------
+# Logs
+# ------------------------------------------------------------
+
+*.log
+logs/
+
+# ------------------------------------------------------------
+# Temporary files
+# ------------------------------------------------------------
+
+tmp/
+temp/
+.cache/
+
+# ------------------------------------------------------------
+# Generated files
+# ------------------------------------------------------------
+
+generated/
+out/
+
+# ------------------------------------------------------------
+# Test artifacts
+# ------------------------------------------------------------
+
+*.profraw
+*.profdata
+coverage/
+tarpaulin-report.html
+
+# ------------------------------------------------------------
+# Package manager files
+# ------------------------------------------------------------
+
+.pnpm-store/
+.yarn/
+!.yarn/releases
+!.yarn/plugins
+!.yarn/sdks
+!.yarn/versions
