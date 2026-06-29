@@ -2,8 +2,8 @@
   import { Button } from "flowbite-svelte";
   import { FilePlus } from "@lucide/svelte";
 
-  import CaseQueueCard from "../components/cases/CaseQueueCard.svelte";
-  import CaseEmptyState from "../components/cases/CaseEmptyState.svelte";
+  import CaseQueueCard from "../../components/cases/CaseQueueCard.svelte";
+  import CaseEmptyState from "../../components/cases/CaseEmptyState.svelte";
 
   const queues = [
     {
@@ -52,7 +52,7 @@
     </Button>
   </div>
 
-  <section class="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
+  <section class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
     {#each queues as queue}
       <CaseQueueCard
         label={queue.label}

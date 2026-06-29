@@ -1,0 +1,39 @@
+@import "tailwindcss";
+
+@plugin "flowbite/plugin";
+
+@source "../node_modules/flowbite-svelte/dist";
+@source "../node_modules/flowbite/dist";
+
+/* Make Tailwind/Flowbite dark mode class-based, not system-based. 
+   Since we are not adding a .dark class, Docket stays light. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Docket design tokens */
+@theme {
+  --color-docket-bg: #f8fafc;
+  --color-docket-surface: #ffffff;
+  --color-docket-border: #e2e8f0;
+
+  --color-docket-sidebar: #020617;
+  --color-docket-sidebar-soft: #0f172a;
+  --color-docket-sidebar-active: #1e293b;
+
+  --color-docket-text: #0f172a;
+  --color-docket-muted: #64748b;
+
+  --color-docket-primary: #2563eb;
+  --color-docket-primary-hover: #1d4ed8;
+
+  --color-docket-attention: #d97706;
+  --color-docket-success: #16a34a;
+  --color-docket-danger: #dc2626;
+}
+
+html,
+body {
+  min-height: 100%;
+  background: #f8fafc;
+  color: #0f172a;
+  color-scheme: light;
+}
