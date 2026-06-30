@@ -2,8 +2,8 @@
   import { Button } from "flowbite-svelte";
   import { FilePlus } from "@lucide/svelte";
 
-  import CaseQueueCard from "../components/cases/CaseQueueCard.svelte";
-  import CaseEmptyState from "../components/cases/CaseEmptyState.svelte";
+  import CaseQueueCard from "$lib/components/cases/CaseQueueCard.svelte";
+  import CaseEmptyState from "$lib/components/cases/CaseEmptyState.svelte";
 
   const queues = [
     {
