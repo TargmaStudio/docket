@@ -63,6 +63,29 @@ fn case_number_for(id: i64) -> String {
     format!("PA-{:05}", id)
 }
 
+pub fn status_label(status: &str) -> &str {
+    match status {
+        "needs_submission" => "Needs Submission",
+        "submitted_waiting" => "Waiting on Insurance",
+        "missing_documentation" => "Missing Documentation",
+        "insurance_followup" => "Insurance Follow-up",
+        "approved" => "Approved",
+        "denied" => "Denied",
+        "closed" => "Closed",
+        other => other,
+    }
+}
+
+pub fn priority_label(priority: &str) -> &str {
+    match priority {
+        "low" => "Low",
+        "normal" => "Normal",
+        "high" => "High",
+        "urgent" => "Urgent",
+        other => other,
+    }
+}
+
 fn row_to_case(row: &Row) -> rusqlite::Result<CaseRow> {
     let id: i64 = row.get("id")?;
 
@@ -300,5 +323,22 @@ mod tests {
         let result = get_case_impl(&conn, 999);
 
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn status_label_maps_known_statuses_to_readable_text() {
+        assert_eq!(status_label("needs_submission"), "Needs Submission");
+        assert_eq!(status_label("approved"), "Approved");
+    }
+
+    #[test]
+    fn status_label_falls_back_to_the_raw_value_for_unknown_statuses() {
+        assert_eq!(status_label("some_future_status"), "some_future_status");
+    }
+
+    #[test]
+    fn priority_label_maps_known_priorities_to_readable_text() {
+        assert_eq!(priority_label("urgent"), "Urgent");
+        assert_eq!(priority_label("low"), "Low");
     }
 }

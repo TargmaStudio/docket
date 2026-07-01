@@ -1,4 +1,5 @@
 pub mod cases;
+pub mod exports;
 
 use cases::Db;
 use rusqlite::Connection;
@@ -25,7 +26,8 @@ pub fn run() {
             cases::list_cases,
             cases::create_case,
             cases::update_case,
-            cases::delete_case
+            cases::delete_case,
+            exports::export_cases_csv
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
