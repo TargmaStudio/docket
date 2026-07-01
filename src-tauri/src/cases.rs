@@ -83,6 +83,10 @@ fn row_to_case(row: &Row) -> rusqlite::Result<CaseRow> {
     })
 }
 
+fn get_case_impl(conn: &Connection, id: i64) -> rusqlite::Result<CaseRow> {
+    conn.query_row("SELECT * FROM cases WHERE id = ?1", params![id], row_to_case)
+}
+
 fn list_cases_impl(conn: &Connection) -> rusqlite::Result<Vec<CaseRow>> {
     let mut statement = conn.prepare("SELECT * FROM cases ORDER BY id DESC")?;
     let rows = statement
@@ -144,6 +148,13 @@ fn update_case_impl(conn: &Connection, id: i64, input: NewCaseInput) -> rusqlite
 fn delete_case_impl(conn: &Connection, id: i64) -> rusqlite::Result<()> {
     conn.execute("DELETE FROM cases WHERE id = ?1", params![id])?;
     Ok(())
+}
+
+#[tauri::command]
+pub fn get_case(db: State<Db>, id: String) -> Result<CaseRow, String> {
+    let case_id: i64 = id.parse().map_err(|_| "Invalid case id".to_string())?;
+    let conn = db.0.lock().map_err(|e| e.to_string())?;
+    get_case_impl(&conn, case_id).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -266,6 +277,27 @@ mod tests {
         let conn = setup();
 
         let result = update_case_impl(&conn, 999, sample_input("Ghost"));
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn get_case_returns_the_matching_case() {
+        let conn = setup();
+        create_case_impl(&conn, sample_input("Jane Doe")).unwrap();
+        let second = create_case_impl(&conn, sample_input("John Smith")).unwrap();
+
+        let fetched = get_case_impl(&conn, second.id.parse().unwrap()).unwrap();
+
+        assert_eq!(fetched.id, second.id);
+        assert_eq!(fetched.patient_name, "John Smith");
+    }
+
+    #[test]
+    fn get_case_with_unknown_id_errors() {
+        let conn = setup();
+
+        let result = get_case_impl(&conn, 999);
 
         assert!(result.is_err());
     }
