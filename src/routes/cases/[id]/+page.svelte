@@ -136,7 +136,7 @@
       </div>
     </div>
 
-    <div class="grid gap-6 lg:grid-cols-2">
+    <div class="grid grid-cols-1 gap-8 lg:grid-cols-2">
       <div class="rounded-xl border border-docket-border bg-white p-6 shadow-sm">
         <h2 class="text-sm font-semibold uppercase tracking-wide text-slate-500">
           Patient
