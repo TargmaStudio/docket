@@ -328,6 +328,7 @@
                     <EllipsisVertical class="h-4 w-4" />
                   </button>
                   <Dropdown
+                    simple
                     placement="bottom-end"
                     isOpen={openMenuCaseId === caseRow.id}
                     onclose={() => closeRowMenu(caseRow.id)}
