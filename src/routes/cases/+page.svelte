@@ -1,7 +1,9 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { invoke } from "@tauri-apps/api/core";
-  import { FilePlus, Trash2 } from "@lucide/svelte";
+  import { confirm } from "@tauri-apps/plugin-dialog";
+  import { Dropdown, DropdownItem } from "flowbite-svelte";
+  import { EllipsisVertical, FilePlus, Pencil, Trash2 } from "@lucide/svelte";
 
   import PageHeader from "$lib/components/common/PageHeader.svelte";
   import CaseFilterBar from "$lib/components/cases/CaseFilterBar.svelte";
@@ -21,6 +23,8 @@
   let selectedPriority = $state("all");
   let cases = $state<CaseRow[]>([]);
   let isNewCaseModalOpen = $state(false);
+  let editingCase = $state<CaseRow | null>(null);
+  let openMenuCaseId = $state<string | null>(null);
   let isLoadingCases = $state(true);
   let errorMessage = $state("");
 
@@ -64,7 +68,23 @@
   }
 
   function openNewCaseModal() {
+    editingCase = null;
     isNewCaseModalOpen = true;
+  }
+
+  function openEditCaseModal(caseRow: CaseRow) {
+    editingCase = caseRow;
+    isNewCaseModalOpen = true;
+  }
+
+  function toggleRowMenu(caseId: string) {
+    openMenuCaseId = openMenuCaseId === caseId ? null : caseId;
+  }
+
+  function closeRowMenu(caseId: string) {
+    if (openMenuCaseId === caseId) {
+      openMenuCaseId = null;
+    }
   }
 
   function clearFilters() {
@@ -101,9 +121,41 @@
     }
   }
 
+  async function updateCase(id: string, form: NewCaseForm) {
+    errorMessage = "";
+
+    const payload: NewCasePayload = {
+      patientName: form.patientName,
+      dateOfBirth: formatDateForRow(form.dateOfBirth),
+      payer: form.payer,
+      memberId: form.memberId,
+      procedureCode: form.procedureCode,
+      procedureDescription: form.procedureDescription,
+      status: form.status,
+      priority: form.priority,
+      dueDate: formatDateForRow(form.dueDate),
+      summary: form.summary,
+    };
+
+    try {
+      const updated = await invoke<CaseRow>("update_case", {
+        id,
+        input: payload,
+      });
+
+      cases = cases.map((existing) =>
+        existing.id === updated.id ? updated : existing,
+      );
+    } catch (error) {
+      errorMessage = "Unable to save changes to the local database.";
+      console.error(error);
+    }
+  }
+
   async function deleteCase(caseRow: CaseRow) {
-    const confirmed = confirm(
+    const confirmed = await confirm(
       `Delete case ${caseRow.caseNumber} for ${caseRow.patientName}? This can't be undone.`,
+      { title: "Delete case", kind: "warning" },
     );
 
     if (!confirmed) {
@@ -269,12 +321,39 @@
                 <td class="px-5 py-4 text-right">
                   <button
                     type="button"
-                    onclick={() => deleteCase(caseRow)}
-                    aria-label={`Delete case ${caseRow.caseNumber}`}
-                    class="rounded-lg p-2 text-slate-400 transition hover:bg-red-50 hover:text-red-600 focus:outline-none focus:ring-2 focus:ring-red-100"
+                    onclick={() => toggleRowMenu(caseRow.id)}
+                    aria-label={`Actions for case ${caseRow.caseNumber}`}
+                    class="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-100"
                   >
-                    <Trash2 class="h-4 w-4" />
+                    <EllipsisVertical class="h-4 w-4" />
                   </button>
+                  <Dropdown
+                    simple
+                    placement="bottom-end"
+                    isOpen={openMenuCaseId === caseRow.id}
+                    onclose={() => closeRowMenu(caseRow.id)}
+                  >
+                    <DropdownItem
+                      onclick={() => {
+                        closeRowMenu(caseRow.id);
+                        openEditCaseModal(caseRow);
+                      }}
+                      class="flex items-center gap-2"
+                    >
+                      <Pencil class="h-4 w-4" />
+                      Edit
+                    </DropdownItem>
+                    <DropdownItem
+                      onclick={() => {
+                        closeRowMenu(caseRow.id);
+                        deleteCase(caseRow);
+                      }}
+                      class="flex items-center gap-2 text-red-600 hover:bg-red-50 hover:text-red-700"
+                    >
+                      <Trash2 class="h-4 w-4" />
+                      Delete
+                    </DropdownItem>
+                  </Dropdown>
                 </td>
               </tr>
             {/each}
@@ -284,5 +363,11 @@
     </div>
   </div>
 
-  <NewCaseModal bind:open={isNewCaseModalOpen} onCreate={createCase} />
+  <NewCaseModal
+    bind:open={isNewCaseModalOpen}
+    existingCase={editingCase}
+    onClose={() => (editingCase = null)}
+    onCreate={createCase}
+    onUpdate={updateCase}
+  />
 </div>

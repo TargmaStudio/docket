@@ -2,37 +2,46 @@
   import { Button, Modal, Datepicker } from "flowbite-svelte";
   import { X } from "@lucide/svelte";
 
-  import type { NewCaseForm } from "$lib/types/case";
-  import { createEmptyNewCaseForm } from "$lib/types/case";
+  import type { CaseRow, NewCaseForm } from "$lib/types/case";
+  import { caseRowToForm, createEmptyNewCaseForm } from "$lib/types/case";
 
   type Props = {
     open?: boolean;
+    existingCase?: CaseRow | null;
     onClose?: () => void;
     onCreate?: (form: NewCaseForm) => void;
+    onUpdate?: (id: string, form: NewCaseForm) => void;
   };
 
-  let { open = $bindable(false), onClose, onCreate }: Props = $props();
+  let {
+    open = $bindable(false),
+    existingCase = null,
+    onClose,
+    onCreate,
+    onUpdate,
+  }: Props = $props();
 
   let form = $state<NewCaseForm>(createEmptyNewCaseForm());
+
+  $effect(() => {
+    if (open) {
+      form = existingCase ? caseRowToForm(existingCase) : createEmptyNewCaseForm();
+    }
+  });
 
   function closeModal() {
     open = false;
     onClose?.();
   }
 
-  function resetForm() {
-    form = createEmptyNewCaseForm();
-  }
-
   function handleCancel() {
-    resetForm();
     closeModal();
   }
 
   function handleSubmit(event: SubmitEvent) {
     event.preventDefault();
 
-    onCreate?.({
+    const trimmedForm: NewCaseForm = {
       ...form,
       patientName: form.patientName.trim(),
       payer: form.payer.trim(),
@@ -40,9 +49,14 @@
       procedureCode: form.procedureCode.trim(),
       procedureDescription: form.procedureDescription.trim(),
       summary: form.summary.trim(),
-    });
+    };
 
-    resetForm();
+    if (existingCase) {
+      onUpdate?.(existingCase.id, trimmedForm);
+    } else {
+      onCreate?.(trimmedForm);
+    }
+
     closeModal();
   }
 </script>
@@ -54,10 +68,12 @@
     >
       <div>
         <h2 class="text-xl font-semibold tracking-tight text-docket-text">
-          New Case
+          {existingCase ? "Edit Case" : "New Case"}
         </h2>
         <p class="mt-1 text-sm text-docket-muted">
-          Create a prior authorization case in the local workspace.
+          {existingCase
+            ? "Update details for this prior authorization case."
+            : "Create a prior authorization case in the local workspace."}
         </p>
       </div>
 
@@ -314,7 +330,7 @@
         type="submit"
         class="inline-flex items-center rounded-lg bg-docket-primary px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-docket-primary-hover focus:outline-none focus:ring-2 focus:ring-blue-200"
       >
-        Create Case
+        {existingCase ? "Save Changes" : "Create Case"}
       </button>
     </div>
   </form>
