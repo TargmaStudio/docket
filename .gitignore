@@ -90,14 +90,14 @@ src-tauri/target/debug/bundle/
 # Docket workspaces / user-owned data
 # ------------------------------------------------------------
 
-Docket/
-Prior Authorization/
-workspaces/
-workspace/
-workspace.db
-attachments/
-exports/
-backups/
+/Docket/
+/Prior Authorization/
+/workspaces/
+/workspace/
+/workspace.db
+/attachments/
+/exports/
+/backups/
 
 # Local demo or test workspaces
 demo-workspace/
