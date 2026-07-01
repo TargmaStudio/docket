@@ -1,6 +1,7 @@
 <script lang="ts">
-  import { Button } from "flowbite-svelte";
-  import { FilePlus } from "@lucide/svelte";
+  import { onMount } from "svelte";
+  import { invoke } from "@tauri-apps/api/core";
+  import { FilePlus, Trash2 } from "@lucide/svelte";
 
   import PageHeader from "$lib/components/common/PageHeader.svelte";
   import CaseFilterBar from "$lib/components/cases/CaseFilterBar.svelte";
@@ -8,13 +9,20 @@
   import NewCaseModal from "$lib/components/cases/NewCaseModal.svelte";
   import StatusBadge from "$lib/components/cases/StatusBadge.svelte";
   import PriorityBadge from "$lib/components/cases/PriorityBadge.svelte";
-  import type { CaseRow, NewCaseForm } from "$lib/types/case";
+  import {
+    formatRelativeTime,
+    type CaseRow,
+    type NewCaseForm,
+    type NewCasePayload,
+  } from "$lib/types/case";
 
   let searchQuery = $state("");
   let selectedStatus = $state("all");
   let selectedPriority = $state("all");
   let cases = $state<CaseRow[]>([]);
   let isNewCaseModalOpen = $state(false);
+  let isLoadingCases = $state(true);
+  let errorMessage = $state("");
 
   let filteredCases = $derived.by(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -37,6 +45,24 @@
     });
   });
 
+  onMount(() => {
+    loadCases();
+  });
+
+  async function loadCases() {
+    isLoadingCases = true;
+    errorMessage = "";
+
+    try {
+      cases = await invoke<CaseRow[]>("list_cases");
+    } catch (error) {
+      errorMessage = "Unable to load cases from the local database.";
+      console.error(error);
+    } finally {
+      isLoadingCases = false;
+    }
+  }
+
   function openNewCaseModal() {
     isNewCaseModalOpen = true;
   }
@@ -47,32 +73,52 @@
     selectedPriority = "all";
   }
 
-  function createMockCase(form: NewCaseForm) {
-    const nextNumber = cases.length + 1;
+  async function createCase(form: NewCaseForm) {
+    errorMessage = "";
 
-    const newCase: CaseRow = {
-      id: crypto.randomUUID(),
-      caseNumber: `PA-${String(nextNumber).padStart(5, "0")}`,
-
+    const payload: NewCasePayload = {
       patientName: form.patientName,
       dateOfBirth: formatDateForRow(form.dateOfBirth),
-
       payer: form.payer,
       memberId: form.memberId,
-
       procedureCode: form.procedureCode,
       procedureDescription: form.procedureDescription,
-
       status: form.status,
       priority: form.priority,
-
       dueDate: formatDateForRow(form.dueDate),
       summary: form.summary,
-
-      lastActivity: "Just now",
     };
 
-    cases = [newCase, ...cases];
+    try {
+      const created = await invoke<CaseRow>("create_case", {
+        input: payload,
+      });
+
+      cases = [created, ...cases];
+    } catch (error) {
+      errorMessage = "Unable to save the case to the local database.";
+      console.error(error);
+    }
+  }
+
+  async function deleteCase(caseRow: CaseRow) {
+    const confirmed = confirm(
+      `Delete case ${caseRow.caseNumber} for ${caseRow.patientName}? This can't be undone.`,
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    errorMessage = "";
+
+    try {
+      await invoke("delete_case", { id: caseRow.id });
+      cases = cases.filter((existing) => existing.id !== caseRow.id);
+    } catch (error) {
+      errorMessage = "Unable to delete the case.";
+      console.error(error);
+    }
   }
 
   function formatDateForRow(date: Date | undefined): string {
@@ -103,6 +149,14 @@
     </button>
   </PageHeader>
 
+  {#if errorMessage}
+    <div
+      class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+    >
+      {errorMessage}
+    </div>
+  {/if}
+
   <CaseFilterBar bind:searchQuery bind:selectedStatus bind:selectedPriority />
 
   <div
@@ -114,7 +168,9 @@
       <div>
         <h2 class="text-lg font-semibold">Case queue</h2>
         <p class="mt-1 text-sm text-docket-muted">
-          {#if cases.length === 0}
+          {#if isLoadingCases}
+            Loading cases…
+          {:else if cases.length === 0}
             No cases have been created yet.
           {:else if filteredCases.length === cases.length}
             Showing {cases.length} case{cases.length === 1 ? "" : "s"}.
@@ -142,19 +198,26 @@
             <th class="px-5 py-3 font-semibold">Priority</th>
             <th class="px-5 py-3 font-semibold">Due Date</th>
             <th class="px-5 py-3 font-semibold">Last Activity</th>
+            <th class="px-5 py-3 font-semibold"><span class="sr-only">Actions</span></th>
           </tr>
         </thead>
 
         <tbody>
-          {#if cases.length === 0}
+          {#if isLoadingCases}
             <tr>
-              <td colspan="8" class="px-5 py-16 text-center">
+              <td colspan="9" class="px-5 py-16 text-center text-docket-muted">
+                Loading cases…
+              </td>
+            </tr>
+          {:else if cases.length === 0}
+            <tr>
+              <td colspan="9" class="px-5 py-16 text-center">
                 <CaseTableEmptyState onNewCase={openNewCaseModal} />
               </td>
             </tr>
           {:else if filteredCases.length === 0}
             <tr>
-              <td colspan="8" class="px-5 py-16 text-center">
+              <td colspan="9" class="px-5 py-16 text-center">
                 <div class="mx-auto max-w-md">
                   <h3 class="text-base font-semibold text-docket-text">
                     No matching cases
@@ -201,8 +264,18 @@
                 </td>
                 <td class="px-5 py-4">{caseRow.dueDate || "—"}</td>
                 <td class="px-5 py-4 text-docket-muted"
-                  >{caseRow.lastActivity}</td
+                  >{formatRelativeTime(caseRow.lastActivity)}</td
                 >
+                <td class="px-5 py-4 text-right">
+                  <button
+                    type="button"
+                    onclick={() => deleteCase(caseRow)}
+                    aria-label={`Delete case ${caseRow.caseNumber}`}
+                    class="rounded-lg p-2 text-slate-400 transition hover:bg-red-50 hover:text-red-600 focus:outline-none focus:ring-2 focus:ring-red-100"
+                  >
+                    <Trash2 class="h-4 w-4" />
+                  </button>
+                </td>
               </tr>
             {/each}
           {/if}
@@ -211,5 +284,5 @@
     </div>
   </div>
 
-  <NewCaseModal bind:open={isNewCaseModalOpen} onCreate={createMockCase} />
+  <NewCaseModal bind:open={isNewCaseModalOpen} onCreate={createCase} />
 </div>

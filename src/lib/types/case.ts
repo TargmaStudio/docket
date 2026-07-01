@@ -28,7 +28,26 @@ export type CaseRow = {
   dueDate: string;
   summary: string;
 
+  /** ISO timestamp; format with `formatRelativeTime` for display. */
   lastActivity: string;
+};
+
+/** New case input sent to the `create_case` Tauri command. */
+export type NewCasePayload = {
+  patientName: string;
+  dateOfBirth: string;
+
+  payer: string;
+  memberId: string;
+
+  procedureCode: string;
+  procedureDescription: string;
+
+  status: CaseStatus;
+  priority: CasePriority;
+
+  dueDate: string;
+  summary: string;
 };
 
 export type NewCaseForm = {
@@ -67,6 +86,24 @@ export const CASE_PRIORITY_LABELS: Record<CasePriority, string> = {
   high: "High",
   urgent: "Urgent",
 };
+
+export function formatRelativeTime(isoTimestamp: string): string {
+  const then = new Date(isoTimestamp).getTime();
+  const diffMinutes = Math.floor((Date.now() - then) / 60_000);
+
+  if (diffMinutes < 1) return "Just now";
+  if (diffMinutes < 60) {
+    return `${diffMinutes} minute${diffMinutes === 1 ? "" : "s"} ago`;
+  }
+
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (diffHours < 24) {
+    return `${diffHours} hour${diffHours === 1 ? "" : "s"} ago`;
+  }
+
+  const diffDays = Math.floor(diffHours / 24);
+  return `${diffDays} day${diffDays === 1 ? "" : "s"} ago`;
+}
 
 export function createEmptyNewCaseForm(): NewCaseForm {
   return {
