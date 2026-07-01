@@ -1,22 +1,18 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { invoke } from "@tauri-apps/api/core";
+  import { goto } from "$app/navigation";
   import { confirm } from "@tauri-apps/plugin-dialog";
   import { Dropdown, DropdownItem } from "flowbite-svelte";
   import { EllipsisVertical, FilePlus, Pencil, Trash2 } from "@lucide/svelte";
 
+  import * as casesApi from "$lib/api/cases";
   import PageHeader from "$lib/components/common/PageHeader.svelte";
   import CaseFilterBar from "$lib/components/cases/CaseFilterBar.svelte";
   import CaseTableEmptyState from "$lib/components/cases/CaseTableEmptyState.svelte";
   import NewCaseModal from "$lib/components/cases/NewCaseModal.svelte";
   import StatusBadge from "$lib/components/cases/StatusBadge.svelte";
   import PriorityBadge from "$lib/components/cases/PriorityBadge.svelte";
-  import {
-    formatRelativeTime,
-    type CaseRow,
-    type NewCaseForm,
-    type NewCasePayload,
-  } from "$lib/types/case";
+  import { formatRelativeTime, type CaseRow, type NewCaseForm } from "$lib/types/case";
 
   let searchQuery = $state("");
   let selectedStatus = $state("all");
@@ -58,7 +54,7 @@
     errorMessage = "";
 
     try {
-      cases = await invoke<CaseRow[]>("list_cases");
+      cases = await casesApi.listCases();
     } catch (error) {
       errorMessage = "Unable to load cases from the local database.";
       console.error(error);
@@ -75,6 +71,10 @@
   function openEditCaseModal(caseRow: CaseRow) {
     editingCase = caseRow;
     isNewCaseModalOpen = true;
+  }
+
+  function viewCaseDetail(caseRow: CaseRow) {
+    goto(`/cases/${caseRow.id}`);
   }
 
   function toggleRowMenu(caseId: string) {
@@ -96,24 +96,8 @@
   async function createCase(form: NewCaseForm) {
     errorMessage = "";
 
-    const payload: NewCasePayload = {
-      patientName: form.patientName,
-      dateOfBirth: formatDateForRow(form.dateOfBirth),
-      payer: form.payer,
-      memberId: form.memberId,
-      procedureCode: form.procedureCode,
-      procedureDescription: form.procedureDescription,
-      status: form.status,
-      priority: form.priority,
-      dueDate: formatDateForRow(form.dueDate),
-      summary: form.summary,
-    };
-
     try {
-      const created = await invoke<CaseRow>("create_case", {
-        input: payload,
-      });
-
+      const created = await casesApi.createCase(form);
       cases = [created, ...cases];
     } catch (error) {
       errorMessage = "Unable to save the case to the local database.";
@@ -124,25 +108,8 @@
   async function updateCase(id: string, form: NewCaseForm) {
     errorMessage = "";
 
-    const payload: NewCasePayload = {
-      patientName: form.patientName,
-      dateOfBirth: formatDateForRow(form.dateOfBirth),
-      payer: form.payer,
-      memberId: form.memberId,
-      procedureCode: form.procedureCode,
-      procedureDescription: form.procedureDescription,
-      status: form.status,
-      priority: form.priority,
-      dueDate: formatDateForRow(form.dueDate),
-      summary: form.summary,
-    };
-
     try {
-      const updated = await invoke<CaseRow>("update_case", {
-        id,
-        input: payload,
-      });
-
+      const updated = await casesApi.updateCase(id, form);
       cases = cases.map((existing) =>
         existing.id === updated.id ? updated : existing,
       );
@@ -165,20 +132,12 @@
     errorMessage = "";
 
     try {
-      await invoke("delete_case", { id: caseRow.id });
+      await casesApi.deleteCase(caseRow.id);
       cases = cases.filter((existing) => existing.id !== caseRow.id);
     } catch (error) {
       errorMessage = "Unable to delete the case.";
       console.error(error);
     }
-  }
-
-  function formatDateForRow(date: Date | undefined): string {
-    if (!date) {
-      return "";
-    }
-
-    return date.toISOString().slice(0, 10);
   }
 </script>
 
@@ -292,7 +251,8 @@
           {:else}
             {#each filteredCases as caseRow (caseRow.id)}
               <tr
-                class="border-b border-docket-border last:border-b-0 hover:bg-slate-50"
+                onclick={() => viewCaseDetail(caseRow)}
+                class="cursor-pointer border-b border-docket-border last:border-b-0 hover:bg-slate-50"
               >
                 <td class="px-5 py-4 font-medium text-slate-900">
                   {caseRow.caseNumber}
@@ -318,7 +278,10 @@
                 <td class="px-5 py-4 text-docket-muted"
                   >{formatRelativeTime(caseRow.lastActivity)}</td
                 >
-                <td class="px-5 py-4 text-right">
+                <td
+                  onclick={(event) => event.stopPropagation()}
+                  class="px-5 py-4 text-right"
+                >
                   <button
                     type="button"
                     onclick={() => toggleRowMenu(caseRow.id)}
