@@ -51,6 +51,23 @@ export type NewCaseForm = {
 export const DEFAULT_CASE_STATUS: CaseStatus = "needs_submission";
 export const DEFAULT_CASE_PRIORITY: CasePriority = "normal";
 
+export const CASE_STATUS_LABELS: Record<CaseStatus, string> = {
+  needs_submission: "Needs Submission",
+  submitted_waiting: "Waiting on Insurance",
+  missing_documentation: "Missing Documentation",
+  insurance_followup: "Insurance Follow-up",
+  approved: "Approved",
+  denied: "Denied",
+  closed: "Closed",
+};
+
+export const CASE_PRIORITY_LABELS: Record<CasePriority, string> = {
+  low: "Low",
+  normal: "Normal",
+  high: "High",
+  urgent: "Urgent",
+};
+
 export function createEmptyNewCaseForm(): NewCaseForm {
   return {
     patientName: "",

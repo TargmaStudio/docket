@@ -6,6 +6,8 @@
   import CaseFilterBar from "$lib/components/cases/CaseFilterBar.svelte";
   import CaseTableEmptyState from "$lib/components/cases/CaseTableEmptyState.svelte";
   import NewCaseModal from "$lib/components/cases/NewCaseModal.svelte";
+  import StatusBadge from "$lib/components/cases/StatusBadge.svelte";
+  import PriorityBadge from "$lib/components/cases/PriorityBadge.svelte";
   import type { CaseRow, NewCaseForm } from "$lib/types/case";
 
   let searchQuery = $state("");
@@ -14,8 +16,35 @@
   let cases = $state<CaseRow[]>([]);
   let isNewCaseModalOpen = $state(false);
 
+  let filteredCases = $derived.by(() => {
+    const query = searchQuery.trim().toLowerCase();
+
+    return cases.filter((caseRow) => {
+      const matchesQuery =
+        query === "" ||
+        caseRow.patientName.toLowerCase().includes(query) ||
+        caseRow.payer.toLowerCase().includes(query) ||
+        caseRow.procedureDescription.toLowerCase().includes(query) ||
+        caseRow.caseNumber.toLowerCase().includes(query);
+
+      const matchesStatus =
+        selectedStatus === "all" || caseRow.status === selectedStatus;
+
+      const matchesPriority =
+        selectedPriority === "all" || caseRow.priority === selectedPriority;
+
+      return matchesQuery && matchesStatus && matchesPriority;
+    });
+  });
+
   function openNewCaseModal() {
     isNewCaseModalOpen = true;
+  }
+
+  function clearFilters() {
+    searchQuery = "";
+    selectedStatus = "all";
+    selectedPriority = "all";
   }
 
   function createMockCase(form: NewCaseForm) {
@@ -87,8 +116,13 @@
         <p class="mt-1 text-sm text-docket-muted">
           {#if cases.length === 0}
             No cases have been created yet.
-          {:else}
+          {:else if filteredCases.length === cases.length}
             Showing {cases.length} case{cases.length === 1 ? "" : "s"}.
+          {:else}
+            Showing {filteredCases.length} of {cases.length} case{cases.length ===
+            1
+              ? ""
+              : "s"}.
           {/if}
         </p>
       </div>
@@ -118,8 +152,30 @@
                 <CaseTableEmptyState onNewCase={openNewCaseModal} />
               </td>
             </tr>
+          {:else if filteredCases.length === 0}
+            <tr>
+              <td colspan="8" class="px-5 py-16 text-center">
+                <div class="mx-auto max-w-md">
+                  <h3 class="text-base font-semibold text-docket-text">
+                    No matching cases
+                  </h3>
+                  <p class="mt-2 text-sm leading-6 text-docket-muted">
+                    No cases match your current search or filters.
+                  </p>
+                  <div class="mt-6">
+                    <button
+                      type="button"
+                      onclick={clearFilters}
+                      class="inline-flex items-center rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                    >
+                      Clear filters
+                    </button>
+                  </div>
+                </div>
+              </td>
+            </tr>
           {:else}
-            {#each cases as caseRow}
+            {#each filteredCases as caseRow (caseRow.id)}
               <tr
                 class="border-b border-docket-border last:border-b-0 hover:bg-slate-50"
               >
@@ -139,8 +195,10 @@
                     </div>
                   {/if}
                 </td>
-                <td class="px-5 py-4">{caseRow.status}</td>
-                <td class="px-5 py-4">{caseRow.priority}</td>
+                <td class="px-5 py-4"><StatusBadge status={caseRow.status} /></td>
+                <td class="px-5 py-4">
+                  <PriorityBadge priority={caseRow.priority} />
+                </td>
                 <td class="px-5 py-4">{caseRow.dueDate || "—"}</td>
                 <td class="px-5 py-4 text-docket-muted"
                   >{caseRow.lastActivity}</td
