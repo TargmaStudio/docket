@@ -1,4 +1,4 @@
-mod cases;
+pub mod cases;
 
 use cases::Db;
 use rusqlite::Connection;
