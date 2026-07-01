@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { invoke } from "@tauri-apps/api/core";
-  import { FilePlus, Trash2 } from "@lucide/svelte";
+  import { FilePlus, Pencil, Trash2 } from "@lucide/svelte";
 
   import PageHeader from "$lib/components/common/PageHeader.svelte";
   import CaseFilterBar from "$lib/components/cases/CaseFilterBar.svelte";
@@ -21,6 +21,7 @@
   let selectedPriority = $state("all");
   let cases = $state<CaseRow[]>([]);
   let isNewCaseModalOpen = $state(false);
+  let editingCase = $state<CaseRow | null>(null);
   let isLoadingCases = $state(true);
   let errorMessage = $state("");
 
@@ -64,6 +65,12 @@
   }
 
   function openNewCaseModal() {
+    editingCase = null;
+    isNewCaseModalOpen = true;
+  }
+
+  function openEditCaseModal(caseRow: CaseRow) {
+    editingCase = caseRow;
     isNewCaseModalOpen = true;
   }
 
@@ -97,6 +104,37 @@
       cases = [created, ...cases];
     } catch (error) {
       errorMessage = "Unable to save the case to the local database.";
+      console.error(error);
+    }
+  }
+
+  async function updateCase(id: string, form: NewCaseForm) {
+    errorMessage = "";
+
+    const payload: NewCasePayload = {
+      patientName: form.patientName,
+      dateOfBirth: formatDateForRow(form.dateOfBirth),
+      payer: form.payer,
+      memberId: form.memberId,
+      procedureCode: form.procedureCode,
+      procedureDescription: form.procedureDescription,
+      status: form.status,
+      priority: form.priority,
+      dueDate: formatDateForRow(form.dueDate),
+      summary: form.summary,
+    };
+
+    try {
+      const updated = await invoke<CaseRow>("update_case", {
+        id,
+        input: payload,
+      });
+
+      cases = cases.map((existing) =>
+        existing.id === updated.id ? updated : existing,
+      );
+    } catch (error) {
+      errorMessage = "Unable to save changes to the local database.";
       console.error(error);
     }
   }
@@ -267,14 +305,24 @@
                   >{formatRelativeTime(caseRow.lastActivity)}</td
                 >
                 <td class="px-5 py-4 text-right">
-                  <button
-                    type="button"
-                    onclick={() => deleteCase(caseRow)}
-                    aria-label={`Delete case ${caseRow.caseNumber}`}
-                    class="rounded-lg p-2 text-slate-400 transition hover:bg-red-50 hover:text-red-600 focus:outline-none focus:ring-2 focus:ring-red-100"
-                  >
-                    <Trash2 class="h-4 w-4" />
-                  </button>
+                  <div class="flex items-center justify-end gap-1">
+                    <button
+                      type="button"
+                      onclick={() => openEditCaseModal(caseRow)}
+                      aria-label={`Edit case ${caseRow.caseNumber}`}
+                      class="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                    >
+                      <Pencil class="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onclick={() => deleteCase(caseRow)}
+                      aria-label={`Delete case ${caseRow.caseNumber}`}
+                      class="rounded-lg p-2 text-slate-400 transition hover:bg-red-50 hover:text-red-600 focus:outline-none focus:ring-2 focus:ring-red-100"
+                    >
+                      <Trash2 class="h-4 w-4" />
+                    </button>
+                  </div>
                 </td>
               </tr>
             {/each}
@@ -284,5 +332,11 @@
     </div>
   </div>
 
-  <NewCaseModal bind:open={isNewCaseModalOpen} onCreate={createCase} />
+  <NewCaseModal
+    bind:open={isNewCaseModalOpen}
+    existingCase={editingCase}
+    onClose={() => (editingCase = null)}
+    onCreate={createCase}
+    onUpdate={updateCase}
+  />
 </div>

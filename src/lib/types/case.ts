@@ -123,3 +123,22 @@ export function createEmptyNewCaseForm(): NewCaseForm {
     summary: "",
   };
 }
+
+export function caseRowToForm(caseRow: CaseRow): NewCaseForm {
+  return {
+    patientName: caseRow.patientName,
+    dateOfBirth: caseRow.dateOfBirth ? new Date(caseRow.dateOfBirth) : undefined,
+
+    payer: caseRow.payer,
+    memberId: caseRow.memberId,
+
+    procedureCode: caseRow.procedureCode,
+    procedureDescription: caseRow.procedureDescription,
+
+    status: caseRow.status,
+    priority: caseRow.priority,
+
+    dueDate: caseRow.dueDate ? new Date(caseRow.dueDate) : undefined,
+    summary: caseRow.summary,
+  };
+}

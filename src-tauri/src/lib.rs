@@ -22,6 +22,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             cases::list_cases,
             cases::create_case,
+            cases::update_case,
             cases::delete_case
         ])
         .run(tauri::generate_context!())

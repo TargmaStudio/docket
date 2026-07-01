@@ -116,6 +116,31 @@ fn create_case_impl(conn: &Connection, input: NewCaseInput) -> rusqlite::Result<
     conn.query_row("SELECT * FROM cases WHERE id = ?1", params![id], row_to_case)
 }
 
+fn update_case_impl(conn: &Connection, id: i64, input: NewCaseInput) -> rusqlite::Result<CaseRow> {
+    conn.execute(
+        "UPDATE cases SET
+            patient_name = ?1, date_of_birth = ?2, payer = ?3, member_id = ?4,
+            procedure_code = ?5, procedure_description = ?6, status = ?7, priority = ?8,
+            due_date = ?9, summary = ?10, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+        WHERE id = ?11",
+        params![
+            input.patient_name,
+            input.date_of_birth,
+            input.payer,
+            input.member_id,
+            input.procedure_code,
+            input.procedure_description,
+            input.status,
+            input.priority,
+            input.due_date,
+            input.summary,
+            id,
+        ],
+    )?;
+
+    conn.query_row("SELECT * FROM cases WHERE id = ?1", params![id], row_to_case)
+}
+
 fn delete_case_impl(conn: &Connection, id: i64) -> rusqlite::Result<()> {
     conn.execute("DELETE FROM cases WHERE id = ?1", params![id])?;
     Ok(())
@@ -131,6 +156,13 @@ pub fn list_cases(db: State<Db>) -> Result<Vec<CaseRow>, String> {
 pub fn create_case(db: State<Db>, input: NewCaseInput) -> Result<CaseRow, String> {
     let conn = db.0.lock().map_err(|e| e.to_string())?;
     create_case_impl(&conn, input).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn update_case(db: State<Db>, id: String, input: NewCaseInput) -> Result<CaseRow, String> {
+    let case_id: i64 = id.parse().map_err(|_| "Invalid case id".to_string())?;
+    let conn = db.0.lock().map_err(|e| e.to_string())?;
+    update_case_impl(&conn, case_id, input).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -209,5 +241,32 @@ mod tests {
         let second = create_case_impl(&conn, sample_input("John Smith")).unwrap();
 
         assert_eq!(second.case_number, "PA-00002");
+    }
+
+    #[test]
+    fn update_case_persists_changes_and_keeps_case_number() {
+        let conn = setup();
+        let created = create_case_impl(&conn, sample_input("Jane Doe")).unwrap();
+
+        let mut changes = sample_input("Jane Doe");
+        changes.status = "approved".to_string();
+        changes.priority = "urgent".to_string();
+
+        let updated =
+            update_case_impl(&conn, created.id.parse().unwrap(), changes).unwrap();
+
+        assert_eq!(updated.status, "approved");
+        assert_eq!(updated.priority, "urgent");
+        assert_eq!(updated.case_number, created.case_number);
+        assert_ne!(updated.last_activity, "");
+    }
+
+    #[test]
+    fn update_case_with_unknown_id_errors() {
+        let conn = setup();
+
+        let result = update_case_impl(&conn, 999, sample_input("Ghost"));
+
+        assert!(result.is_err());
     }
 }
