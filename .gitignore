@@ -146,3 +146,9 @@ tarpaulin-report.html
 !.yarn/plugins
 !.yarn/sdks
 !.yarn/versions
+
+# ------------------------------------------------------------
+# Local agent-tool config (machine-specific, not project config)
+# ------------------------------------------------------------
+
+.claude/launch.json
