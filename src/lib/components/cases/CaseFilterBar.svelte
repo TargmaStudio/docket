@@ -1,6 +1,7 @@
 <script lang="ts">
   import { Button } from "flowbite-svelte";
   import { RotateCcw, Search, SlidersHorizontal } from "@lucide/svelte";
+  import { CASE_STATUS_LABELS, CASE_PRIORITY_LABELS } from "$lib/types/case";
 
   type FilterOption = {
     value: string;
@@ -13,21 +14,18 @@
 
   const statusOptions: FilterOption[] = [
     { value: "all", label: "All statuses" },
-    { value: "needs_submission", label: "Needs Submission" },
-    { value: "submitted_waiting", label: "Waiting on Insurance" },
-    { value: "missing_documentation", label: "Missing Documentation" },
-    { value: "insurance_followup", label: "Insurance Follow-up" },
-    { value: "approved", label: "Approved" },
-    { value: "denied", label: "Denied" },
-    { value: "closed", label: "Closed" },
+    ...Object.entries(CASE_STATUS_LABELS).map(([value, label]) => ({
+      value,
+      label,
+    })),
   ];
 
   const priorityOptions: FilterOption[] = [
     { value: "all", label: "All priorities" },
-    { value: "low", label: "Low" },
-    { value: "normal", label: "Normal" },
-    { value: "high", label: "High" },
-    { value: "urgent", label: "Urgent" },
+    ...Object.entries(CASE_PRIORITY_LABELS).map(([value, label]) => ({
+      value,
+      label,
+    })),
   ];
 
   type Props = {
