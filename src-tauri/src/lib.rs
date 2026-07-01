@@ -9,6 +9,7 @@ use tauri::Manager;
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
             let workspace_dir = app.path().document_dir()?.join("Docket");
             std::fs::create_dir_all(&workspace_dir)?;

@@ -1,7 +1,9 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { invoke } from "@tauri-apps/api/core";
-  import { FilePlus, Pencil, Trash2 } from "@lucide/svelte";
+  import { confirm } from "@tauri-apps/plugin-dialog";
+  import { Dropdown } from "flowbite-svelte";
+  import { EllipsisVertical, FilePlus, Pencil, Trash2 } from "@lucide/svelte";
 
   import PageHeader from "$lib/components/common/PageHeader.svelte";
   import CaseFilterBar from "$lib/components/cases/CaseFilterBar.svelte";
@@ -22,6 +24,7 @@
   let cases = $state<CaseRow[]>([]);
   let isNewCaseModalOpen = $state(false);
   let editingCase = $state<CaseRow | null>(null);
+  let openMenuCaseId = $state<string | null>(null);
   let isLoadingCases = $state(true);
   let errorMessage = $state("");
 
@@ -72,6 +75,16 @@
   function openEditCaseModal(caseRow: CaseRow) {
     editingCase = caseRow;
     isNewCaseModalOpen = true;
+  }
+
+  function toggleRowMenu(caseId: string) {
+    openMenuCaseId = openMenuCaseId === caseId ? null : caseId;
+  }
+
+  function closeRowMenu(caseId: string) {
+    if (openMenuCaseId === caseId) {
+      openMenuCaseId = null;
+    }
   }
 
   function clearFilters() {
@@ -140,8 +153,9 @@
   }
 
   async function deleteCase(caseRow: CaseRow) {
-    const confirmed = confirm(
+    const confirmed = await confirm(
       `Delete case ${caseRow.caseNumber} for ${caseRow.patientName}? This can't be undone.`,
+      { title: "Delete case", kind: "warning" },
     );
 
     if (!confirmed) {
@@ -305,24 +319,45 @@
                   >{formatRelativeTime(caseRow.lastActivity)}</td
                 >
                 <td class="px-5 py-4 text-right">
-                  <div class="flex items-center justify-end gap-1">
-                    <button
-                      type="button"
-                      onclick={() => openEditCaseModal(caseRow)}
-                      aria-label={`Edit case ${caseRow.caseNumber}`}
-                      class="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-100"
-                    >
-                      <Pencil class="h-4 w-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onclick={() => deleteCase(caseRow)}
-                      aria-label={`Delete case ${caseRow.caseNumber}`}
-                      class="rounded-lg p-2 text-slate-400 transition hover:bg-red-50 hover:text-red-600 focus:outline-none focus:ring-2 focus:ring-red-100"
-                    >
-                      <Trash2 class="h-4 w-4" />
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    onclick={() => toggleRowMenu(caseRow.id)}
+                    aria-label={`Actions for case ${caseRow.caseNumber}`}
+                    class="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                  >
+                    <EllipsisVertical class="h-4 w-4" />
+                  </button>
+                  <Dropdown
+                    simple
+                    placement="bottom-end"
+                    isOpen={openMenuCaseId === caseRow.id}
+                    onclose={() => closeRowMenu(caseRow.id)}
+                  >
+                    <div class="flex items-center gap-1 p-1.5">
+                      <button
+                        type="button"
+                        onclick={() => {
+                          closeRowMenu(caseRow.id);
+                          openEditCaseModal(caseRow);
+                        }}
+                        aria-label={`Edit case ${caseRow.caseNumber}`}
+                        class="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
+                      >
+                        <Pencil class="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onclick={() => {
+                          closeRowMenu(caseRow.id);
+                          deleteCase(caseRow);
+                        }}
+                        aria-label={`Delete case ${caseRow.caseNumber}`}
+                        class="rounded-lg p-2 text-slate-500 transition hover:bg-red-50 hover:text-red-600"
+                      >
+                        <Trash2 class="h-4 w-4" />
+                      </button>
+                    </div>
+                  </Dropdown>
                 </td>
               </tr>
             {/each}
