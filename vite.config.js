@@ -1,6 +1,7 @@
 import { defineConfig } from "vite";
 import { sveltekit } from "@sveltejs/kit/vite";
 import tailwindcss from "@tailwindcss/vite";
+import { svelteTesting } from "@testing-library/svelte/vite";
 // @ts-expect-error type error without @types/node package
 import process from "node:process";
 
@@ -8,7 +9,7 @@ const host = process.env.TAURI_DEV_HOST;
 
 // https://vite.dev/config/
 export default defineConfig(() => ({
-  plugins: [tailwindcss(), sveltekit()],
+  plugins: [tailwindcss(), sveltekit(), svelteTesting()],
 
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
   //
@@ -31,5 +32,21 @@ export default defineConfig(() => ({
       // 3. tell Vite to ignore watching `src-tauri`
       ignored: ["**/src-tauri/**"],
     },
+  },
+
+  test: {
+    projects: [
+      {
+        extends: "./vite.config.js",
+        test: {
+          name: "client",
+          environment: "jsdom",
+          clearMocks: true,
+          include: ["src/**/*.svelte.{test,spec}.{js,ts}", "src/**/*.{test,spec}.{js,ts}"],
+          exclude: ["src/lib/server/**"],
+          setupFiles: ["./src/vitest-setup-client.ts"],
+        },
+      },
+    ],
   },
 }));
