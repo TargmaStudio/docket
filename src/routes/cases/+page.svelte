@@ -2,7 +2,7 @@
   import { onMount } from "svelte";
   import { invoke } from "@tauri-apps/api/core";
   import { confirm } from "@tauri-apps/plugin-dialog";
-  import { Dropdown } from "flowbite-svelte";
+  import { Dropdown, DropdownItem } from "flowbite-svelte";
   import { EllipsisVertical, FilePlus, Pencil, Trash2 } from "@lucide/svelte";
 
   import PageHeader from "$lib/components/common/PageHeader.svelte";
@@ -328,35 +328,30 @@
                     <EllipsisVertical class="h-4 w-4" />
                   </button>
                   <Dropdown
-                    simple
                     placement="bottom-end"
                     isOpen={openMenuCaseId === caseRow.id}
                     onclose={() => closeRowMenu(caseRow.id)}
                   >
-                    <div class="flex items-center gap-1 p-1.5">
-                      <button
-                        type="button"
-                        onclick={() => {
-                          closeRowMenu(caseRow.id);
-                          openEditCaseModal(caseRow);
-                        }}
-                        aria-label={`Edit case ${caseRow.caseNumber}`}
-                        class="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
-                      >
-                        <Pencil class="h-4 w-4" />
-                      </button>
-                      <button
-                        type="button"
-                        onclick={() => {
-                          closeRowMenu(caseRow.id);
-                          deleteCase(caseRow);
-                        }}
-                        aria-label={`Delete case ${caseRow.caseNumber}`}
-                        class="rounded-lg p-2 text-slate-500 transition hover:bg-red-50 hover:text-red-600"
-                      >
-                        <Trash2 class="h-4 w-4" />
-                      </button>
-                    </div>
+                    <DropdownItem
+                      onclick={() => {
+                        closeRowMenu(caseRow.id);
+                        openEditCaseModal(caseRow);
+                      }}
+                      class="flex items-center gap-2"
+                    >
+                      <Pencil class="h-4 w-4" />
+                      Edit
+                    </DropdownItem>
+                    <DropdownItem
+                      onclick={() => {
+                        closeRowMenu(caseRow.id);
+                        deleteCase(caseRow);
+                      }}
+                      class="flex items-center gap-2 text-red-600 hover:bg-red-50 hover:text-red-700"
+                    >
+                      <Trash2 class="h-4 w-4" />
+                      Delete
+                    </DropdownItem>
                   </Dropdown>
                 </td>
               </tr>
